@@ -5,18 +5,23 @@
 void init(void);
 void display(void);
 void reshape(int,int);
-void puntos(int,int,int,int);
-void circunferencia(int,int,int,int);
-void circunferencia_relleno(int,int,int,int);
+void planoXY(void);
+void circunferencia(int);
+void algoritmo_punto_medio(int,int,int,int);
 void engranaje(int,int,int);
+
+// Variables globales
+int R = 30;  // Radio mayor
+int r = 15;  // Radio menor
+int N = 32;  // Número de dientes del engranaje
 
 int main(int argc, char** argv)
 {
 glutInit(&argc, argv);
 glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);
-glutInitWindowSize(500,500);
+glutInitWindowSize(800,600);
 glutInitWindowPosition(100,100);
-glutCreateWindow(argv[0]);
+glutCreateWindow("24200166 - Evaluacion 01"); // Cambia el título de la ventana a tu número de matrícula
 init();
 glutDisplayFunc(display);
 glutReshapeFunc(reshape);
@@ -25,77 +30,120 @@ return 0;
 }
 void init(void)
 {
-glClearColor(1,1,1,0.0);  //parametros: rojo, amarillo, azul, el cuarto es el parametro alpha
+glClearColor(0.85,0.85,0.85,0.0);  
 glShadeModel(GL_FLAT);
 }
 
-void circunferencia(int h,int k,int radio,int Np)
+void planoXY(void)
 {
+    glColor3f(0, 0.7, 0);
+
+    glBegin(GL_LINES); 
+    glVertex2f(-35.0, 0.0); 
+    glVertex2f(35.0, 0.0);
+    glEnd();
+    
+    glBegin(GL_LINES);
+    glVertex2f(0.0, -35.0); 
+    glVertex2f(0.0, 35.0);  
+    glEnd();
+}
+
+void circunferencia(int radio)
+{
+    GLfloat ang,x,y;
+
     glBegin(GL_LINE_LOOP);
-        puntos(h,k,radio,Np);
+    for (int i = 0; i < 360; i++)
+    {
+        ang = i * M_PI / 180.0; // Convertir grados a radianes
+        x = radio * cos(ang); // Calcular coordenada x
+        y = radio * sin(ang); // Calcular coordenada y
+        glVertex2f(x, y);
+    }
     glEnd();
 }
 
-void circunferencia_relleno(int h,int k,int radio,int Np)
+void algoritmo_punto_medio(int x0,int y0,int x1,int y1)
 {
-    glBegin(GL_POLYGON);
-        puntos(h,k,radio,Np);
-    glEnd();
-}
+    GLfloat dx,dy,sx,sy,err,e2;
 
-void puntos(int h,int k,int radio,int Np)
-{
-    GLfloat ang, x, y;
-    for (ang = 0.0f; ang < 2 * M_PI; ang += 2*M_PI/Np)
+    dx = abs(x1 - x0); // Calcular la diferencia en x
+    dy = abs(y1 - y0); // Calcular la diferencia en y
+
+    sx = (x0 < x1) ? 1 : -1; // Determinar la dirección del paso en x
+    sy = (y0 < y1) ? 1 : -1; // Determinar la dirección del paso en y
+
+    err = dx - dy; // Inicializar el error
+
+    glBegin(GL_POINTS);
+
+    while (1)
+    {
+        glVertex2i(x0, y0);
+
+        if (x0 == x1 && y0 == y1) // Verificar si se ha alcanzado el punto final
+            break;
+
+        e2 = 2 * err;
+
+        if (e2 > -dy) // Verificar si se debe mover en x
         {
-            x = radio * cos(ang)+h;
-            y = radio * sin(ang)+k;
-            glVertex2f(x,y);
+            err -= dy;
+            x0 += sx;
         }
+
+        if (e2 < dx) // Verificar si se debe mover en y
+        {
+            err += dx;
+            y0 += sy;
+        }
+    }
+
+    glEnd();
 }
 
 void engranaje(int radiomenor,int radiomayor,int Nv)
 {
-    GLfloat ang,radio, x, y;
-    glBegin(GL_LINE_LOOP);
+    GLfloat x[100], y[100],radio,ang;
+    int next;
     for (int i=0;i<Nv;i++)
         {
-            if(i%2==0)
-                radio=radiomayor;
+            if (i%2==0)
+            {
+                radio = radiomayor; // Alternar entre radio mayor y menor para crear los dientes del engranaje
+            }
             else
-                radio=radiomenor;
-            ang=i*2*M_PI/Nv;
-            x = radio * cos(ang);
-            y = radio * sin(ang);
-            glVertex2f(x,y);
+            {
+                radio = radiomenor; //  Alternar entre radio mayor y menor para crear los dientes del engranaje
+            }
+            ang = i * 2 * M_PI / Nv;
+            x[i] = radio * cos(ang); // Calcular coordenada x
+            y[i] = radio * sin(ang); // Calcular coordenada y
         }
-    glEnd();
+    for (int i=0; i<Nv; i++)
+    {
+        next = (i+1) % Nv;
+        algoritmo_punto_medio((int)x[i], (int)y[i], (int)x[next], (int)y[next]); // Dibujar línea entre el punto actual y el siguiente utilizando el algoritmo de punto medio
+    }
 }
 
 void display(void)
 {
 
     glClear(GL_COLOR_BUFFER_BIT);
-    glPushMatrix();                      // salva el estado actual de la matriz
-/*
-    glColor3f(0,1,0);
-    circunferencia_relleno(20,0,20,12);
+    glPointSize(3.0); 
+    glPushMatrix();                   
 
-    glLineWidth(3);
-    glLineStipple(2,0xAAAA);
-    glEnable(GL_LINE_STIPPLE);
+    planoXY();
+    glColor3f(0,0,0.7);
+    circunferencia(R);
+    glColor3f(0.7,0,0);
+    circunferencia(r);
+
     glColor3f(1,0,0);
-    circunferencia(20,0,20,12);
-
-    glLineStipple(4,0xAAAA);
-    glEnable(GL_LINE_STIPPLE);
-    glColor3f(0,0,1);
-    circunferencia(-20,0,20,12);
-
-*/
-    glColor3f(0,0,1);
-    engranaje(20,25,36);
-    glPopMatrix();      // reecupera el estado del matriz
+    engranaje(r, R, N);
+    glPopMatrix();     
     glFlush();
 }
 void reshape(int w, int h)
